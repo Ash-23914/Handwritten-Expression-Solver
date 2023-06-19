@@ -5,6 +5,11 @@ from tkinter import filedialog
 from PIL import ImageTk, Image
 import cv2
 import numpy as np
+import requests
+import urllib.parse
+
+
+from temp2 import fun, math
 
 from calsolve import cal_solve
 
@@ -20,6 +25,11 @@ with open('model.json', 'r') as json_file:
 loaded_model = keras.models.model_from_json(loaded_model_json)
 loaded_model.load_weights("svm.h5")
 loaded_model.compile()
+
+
+
+
+
 
 
 # Creating a tkinter object
@@ -39,9 +49,86 @@ quadratic_equation.pack_propagate(0)
 menu = Frame(win, bg = "white",height = "900" , width = "1500")
 menu.pack_propagate(0)
 
+
+
+
 class ImageUploader:
     equation1 = ''
     equation2 = ''
+
+    def display_graph_le(self):
+
+        string = self.equation1+" , "+self.equation2
+        popup = Toplevel()
+        popup.title("Polynomials")
+
+
+        # Function to display the graph image in the same window
+        api_key = 'api key'
+        query = "plot " + string
+        encoded_query = urllib.parse.quote(query)
+
+        url = f'http://api.wolframalpha.com/v1/simple?appid={api_key}&i={encoded_query}'
+
+        response = requests.get(url)
+
+        # Save the graph image
+        with open('graph.png', 'wb') as f:
+            f.write(response.content)
+
+        # Load the graph image
+        graph_image = Image.open('graph.png')
+        graph_image_tk = ImageTk.PhotoImage(graph_image)
+
+        # Create a label to display the graph image
+        graph_label = Label(popup, image=graph_image_tk)
+        graph_label.pack()
+
+        # Set the graph image as the icon of the popup window
+        popup.iconphoto(True, graph_image_tk)
+
+        # Keep a reference to the graph image to avoid garbage collection
+        graph_label.image = graph_image_tk
+
+        # Run the main event loop for the popup window
+        popup.mainloop()
+
+    def display_graph_qe(self):
+        popup = Toplevel()
+        popup.title("Polynomials")
+
+        string = fun(self.equation1)
+
+        # Function to display the graph image in the same window
+        api_key = 'api-key'
+        query = "plot " + string
+        encoded_query = urllib.parse.quote(query)
+
+        url = f'http://api.wolframalpha.com/v1/simple?appid={api_key}&i={encoded_query}'
+
+        response = requests.get(url)
+
+        # Save the graph image
+        with open('graph.png', 'wb') as f:
+            f.write(response.content)
+
+        # Load the graph image
+        graph_image = Image.open('graph.png')
+        graph_image_tk = ImageTk.PhotoImage(graph_image)
+
+        # Create a label to display the graph image
+        graph_label = Label(popup, image=graph_image_tk)
+        graph_label.pack()
+
+        # Set the graph image as the icon of the popup window
+        popup.iconphoto(True, graph_image_tk)
+
+        # Keep a reference to the graph image to avoid garbage collection
+        graph_label.image = graph_image_tk
+
+        # Run the main event loop for the popup window
+        popup.mainloop()
+
     def __init__(self, master, mode):
         self.master = master
         self.image_path = None
@@ -102,6 +189,9 @@ class ImageUploader:
             self.evaluate_button = Button(master, text="Evaluate", command = self.evaluate, bg = '#f4bd1a')
             self.evaluate_button.pack()
 
+            self.plot_button = Button(master, text="plot", command=self.display_graph_le, bg = '#77e05c')
+            self.plot_button.pack()
+
             self.textle = Text(master,width= 500, height = 300,font=('SF pro',20))
             self.textle.pack()
             self.canvas_3.pack()
@@ -123,9 +213,14 @@ class ImageUploader:
             self.evaluate_button1 = Button(master, text="Evaluate", command = self.evaluate1, bg = '#f4bd1a')
             self.evaluate_button1.pack()
 
+            self.plot_button = Button(master, text="plot", command=self.display_graph_qe, bg = '#77e05c')
+            self.plot_button.pack()
+
             self.textqe = Text(master,width= 500, height = 300,font=('SF pro',20))
             self.textqe.pack()
 
+
+    
     
     def Calculate(self):
         print(cal_solve(self.equation1))
@@ -135,16 +230,23 @@ class ImageUploader:
     def evaluate(self):
         print(self.equation1,self.equation2)
         self.textle.insert(INSERT,"Equation 1 is : "+self.equation1+"\n" + "Equation 2 is : "+self.equation2 +"\n")
-        res = le_solve(self.equation1,self.equation2)
+        strx = self.equation1+' , '+self.equation2
+        res = math(strx)
+        self.textle.insert(END,"Solution for the two Linear equations is: ")
         print(res)
-        self.textle.insert(END,"Solution for the two Linear equations is: x = "+str(res[0])+" y = "+str(res[1])+"\n\n")
+        for i in res:
+            self.textle.insert(END, ' {0} '.format(i))
+        self.textle.insert(END, '\n\n') 
 
     def evaluate1(self):
-        coeff = coefficients(self.equation1)
-        self.textqe.insert(INSERT,"Quadratic Equation  is :  {0}x^2 + ({1}x) + ({2}) \n".format(coeff[0],coeff[1],coeff[2]))
-        res = qe_solve(self.equation1)
+        exp = fun(self.equation1)
+        self.textqe.insert(INSERT,'Expression  is :  {0} \n'.format(exp))
+        res = math(self.equation1)
+        self.textqe.insert(END,'Result is: ')
         print(res)
-        self.textqe.insert(END,"Solution for the  Quadratic equation is : x1 = {0} and x2 = {1}\n\n".format(res[0],res[1]))
+        for i in res:
+            self.textqe.insert(END, ' {0} '.format(i))
+        self.textqe.insert(END, '\n\n') 
 
     def browse_image(self):
         # allow user to select an image file
@@ -341,6 +443,12 @@ class ImageUploader:
             print("Your Equation 2 :", equation2)
         else:
             print("Please select an image to upload.")
+    
+    def plot_quad(self):
+        self.display_graph_le(self.equation1)
+    
+    def plot_le(self):
+        self.display_graph_qe(self.equation1, self.equation2)  
 
 def delete_prev_calc():
     global calc_image_uploader
@@ -363,6 +471,7 @@ def delete_prev_linear():
     linear_equation_image_uploader.upload_button_2.pack_forget()
     linear_equation_image_uploader.evaluate_button.pack_forget()
     linear_equation_image_uploader.textle.pack_forget()
+    linear_equation_image_uploader.plot_button.pack_forget()
 
    
 def delete_prev_quadratic():
@@ -373,6 +482,7 @@ def delete_prev_quadratic():
     quadratic_equation_image_uploader.upload_button.pack_forget()
     quadratic_equation_image_uploader.evaluate_button1.pack_forget()
     quadratic_equation_image_uploader.textqe.pack_forget()
+    quadratic_equation_image_uploader.plot_button.pack_forget()
 
  
 def menu_to_calc():
@@ -418,10 +528,10 @@ def quadratic_to_menu():
 button_menu_to_calc = Button(menu, bg = '#f4bd1a',height = 5,width = 30,text = "Calculator", command = menu_to_calc)
 button_menu_to_calc.pack(pady = 20)
 
-button_menu_to_linear_equation = Button(menu, bg = '#f4bd1a',height = 5,width = 30,text = "Linear Equations", command = menu_to_linear)
+button_menu_to_linear_equation = Button(menu, bg = '#f4bd1a',height = 5,width = 30,text = "Linear Equation Images", command = menu_to_linear)
 button_menu_to_linear_equation.pack(pady = 20)
 
-button_menu_to_quadratic_eqn = Button(menu, bg = '#f4bd1a',height = 5,width = 30,text = "Quadratic Equations",command = menu_to_quadratic)
+button_menu_to_quadratic_eqn = Button(menu, bg = '#f4bd1a',height = 5,width = 30,text = "Polynomial",command = menu_to_quadratic)
 button_menu_to_quadratic_eqn.pack(pady = 20)
 
 
